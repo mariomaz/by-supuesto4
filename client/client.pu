@@ -1,0 +1,178 @@
+
+
+@startuml
+        
+skinparam state {
+    FontStyle bold
+}
+
+        
+
+' scxml
+
+
+' initial
+[*] -> client
+
+' state
+state client {
+
+    ' datamodel
+    client : **datamodel /**
+
+        ' data
+        client : host = DEFAULT_SERVER_HOST;
+
+        ' data
+        client : port = DEFAULT_SERVER_PORT;
+
+        ' data
+        client : id = 0;
+
+        ' data
+        client : name = 
+
+        ' data
+        client : inserted = false;
+
+        ' data
+        client : elapsedTime = 0;
+
+    ' initial
+
+
+        ' transition
+        [*] --> connecting
+
+
+    ' state
+    state connecting {
+
+        ' onentry
+        connecting : **entry /**
+
+            ' send
+            connecting : <b>send</b>(NULL, model.connectToServer(QString, quint16)); \n \t host: _data.host \n \t port: _data.port
+
+        ' transition
+        connecting --> connected : model.connectedToServer
+
+        ' transition
+        connecting --> client_final : model.clientError()
+    }
+
+
+    ' state
+    state connected {
+
+        ' initial
+
+
+            ' transition
+            [*] --> idle
+
+
+        ' state
+        state idle {
+
+            ' onentry
+            idle : **entry /**
+
+                ' send
+                idle : <b>send</b>('timer.run', timer.run.timeout, 1000ms);
+
+            ' onexit
+            idle : **exit /**
+
+                ' cancel
+                idle : <b>cancel</b>('timer.run');
+
+            ' transition
+            idle --> running : timer.run.timeout
+
+            ' transition
+            idle --> disconnecting : model.terminated
+        }
+
+
+        ' state
+        state running {
+
+            ' initial
+
+
+                ' transition
+                [*] --> sending
+
+
+            ' state
+            state sending {
+
+                ' onentry
+                sending : **entry /**
+
+                    ' send
+                    sending : <b>send</b>(NULL, model.sendNextRequest());
+
+                ' transition
+                sending --> waiting : model.commandSent(quint32, QString) /  \n _data.id = _event.data[0].toUInt(); \n _data.name = _event.data[1].toString(); \n <b>send</b>(NULL, view.showCommand(quint32, QString)); \n \t id: _data.id \n \t name: _data.name
+            }
+
+
+            ' state
+            state waiting {
+
+                ' transition
+                waiting --> idle : model.responseReceived(bool, qint64) /  \n _data.inserted = _event.data[0].toBool(); \n _data.elapsedTime = _event.data[1].toUInt(); \n <b>send</b>(NULL, view.showResponse(bool, quint32)); \n \t inserted: _data.inserted \n \t elapsedTime: _data.elapsedTime
+            }
+
+
+            ' transition
+            running --> disconnecting : model.clientError()
+        }
+
+
+        ' state
+        state disconnecting {
+
+            ' onentry
+            disconnecting : **entry /**
+
+                ' send
+                disconnecting : <b>send</b>(NULL, model.disconnectFromServer());
+
+            ' transition
+            disconnecting --> disconnected : model.disconnectedFromServer
+
+            ' transition
+            disconnecting --> client_final : model.clientError()
+        }
+
+
+        ' state
+        state disconnected {
+
+            ' transition
+            disconnected --> client_final
+        }
+
+
+        ' final
+        client_final -> [*]
+        state client_final {
+        }
+
+    }
+
+}
+
+
+skinparam state {
+    BackgroundColor<<ActiveState>> YellowGreen
+}
+
+!include StateConfiguration.pu
+
+@enduml
+
+        

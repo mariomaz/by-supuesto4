@@ -1,0 +1,134 @@
+
+
+@startuml
+        
+skinparam state {
+    FontStyle bold
+}
+
+        
+
+' scxml
+
+
+' initial
+[*] -> server
+
+' state
+state server {
+
+    ' datamodel
+    server : **datamodel /**
+
+        ' data
+        server : port = DEFAULT_SERVER_PORT;
+
+        ' data
+        server : maxThreadCount = DEFAULT_MAX_THREAD_COUNT;
+
+        ' data
+        server : reportFilepath = DEFAULT_REPORT_FILEPATH;
+
+    ' initial
+
+
+        ' transition
+        [*] --> starting
+
+
+    ' state
+    state starting {
+
+        ' onentry
+        starting : **entry /**
+
+            ' send
+            starting : <b>send</b>(NULL, model.startServer(quint16, int)); \n \t port: _data.port \n \t maxThreadCount: _data.maxThreadCount
+
+        ' transition
+        starting --> running : model.serverStarted
+
+        ' transition
+        starting --> stopping : model.serverError
+    }
+
+
+    ' state
+    state running {
+
+        ' onentry
+        running : **entry /**
+
+            ' send
+            running : <b>send</b>('timer.idle', timer.idle.timeout, 60000ms);
+
+        ' onexit
+        running : **exit /**
+
+            ' cancel
+            running : <b>cancel</b>('timer.idle');
+
+        ' transition
+        running --> running : model.requestProcessed(quint32, QString, bool)
+
+        ' transition
+        running --> reporting : timer.idle.timeout
+    }
+
+
+    ' state
+    state reporting {
+
+        ' onentry
+        reporting : **entry /**
+
+            ' send
+            reporting : <b>send</b>(NULL, model.createReport(QString)); \n \t filepath: _data.reportFilepath
+
+        ' transition
+        reporting --> stopping : model.reportCreated
+
+        ' transition
+        reporting --> stopping : model.reportError
+    }
+
+
+    ' state
+    state stopping {
+
+        ' onentry
+        stopping : **entry /**
+
+            ' send
+            stopping : <b>send</b>(NULL, model.stopServer());
+
+        ' transition
+        stopping --> terminated : model.serverStopped
+    }
+
+
+    ' state
+    state terminated {
+
+        ' transition
+        terminated --> server_final
+    }
+
+
+    ' final
+    server_final -> [*]
+    state server_final {
+    }
+
+}
+
+
+skinparam state {
+    BackgroundColor<<ActiveState>> YellowGreen
+}
+
+!include StateConfiguration.pu
+
+@enduml
+
+        

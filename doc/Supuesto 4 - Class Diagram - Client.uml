@@ -1,0 +1,35 @@
+@startuml
+
+package Client {
+
+interface ClientView {
++void showCommand(quint32 id, QString const& name)
++void showResponse(bool inserted, quint32 elapsedTime)
+--signals--
+}
+
+interface ClientPresenter
+
+interface ClientModel {
++bool connectToServer(QString host, quint16 port)
++bool disconnectFromServer()
++bool sendNextRequest()
++void clientExit()
+--signals--
++void connectedToServer();
++void disconnectedFromServer();
++void clientError();
++void commandSent(quint32 id, QString const& name);
++void responseReceived(bool inserted, qint64 elapsedTime);
++void terminated();
+}
+
+ClientPresenter -- ClientModel : updates model >
+ClientModel -- ClientPresenter : state-change events >
+
+ClientView -- ClientPresenter : user events >
+ClientPresenter -- ClientView : updates view >
+
+}
+
+@enduml

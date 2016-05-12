@@ -1,0 +1,25 @@
+@startuml
+
+package Shared {
+
+class Command {
+quint32 id
+QString name
+}
+
+class Response {
+bool inserted
+} 
+
+class Sender {
+{static} bool send(QString const& s, QTcpSocket* socket)
+}
+
+
+class Receiver {
+{static} QString receive(QTcpSocket* socket)
+}
+
+}
+
+@enduml

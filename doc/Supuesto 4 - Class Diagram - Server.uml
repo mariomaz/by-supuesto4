@@ -1,0 +1,32 @@
+@startuml
+
+package Server {
+
+interface ServerView {
+}
+
+interface ServerPresenter
+
+interface ServerModel {
++bool startServer(quint16 port, int maxThreadCount)
++bool stopServer()
++bool createReport(QString const& filepath)
++void serverExit()
+--signals--
++serverStarted()
++serverStopped()
++serverError()
++requestProcessed(quint32 id, QString const& name, bool inserted)
++reportCreated()
++reportError()
+}
+
+ServerPresenter -- ServerModel : updates model >
+ServerModel -- ServerPresenter : state-change events >
+
+ServerView -- ServerPresenter : user events >
+ServerPresenter -- ServerView : updates view >
+
+}
+
+@enduml

@@ -1,0 +1,96 @@
+<?xml version="1.0"?>
+<scxml xmlns="http://www.w3.org/2005/07/scxml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.w3.org/2005/07/scxml http://www.w3.org/2011/04/SCXML/scxml.xsd"
+	xmlns:Qt="http://www.qtsoftware.com scxml-ext" initial="client"
+	version="1.0">
+
+	<Qt:cpp>
+<![CDATA[
+#include <QElapsedTimer>
+
+#define DEFAULT_SERVER_HOST               "127.0.0.1"
+#define DEFAULT_SERVER_PORT               5555
+]]>
+	</Qt:cpp>
+	<state id="client">
+		<datamodel>
+			<data id="host" Qt:type="QString" expr="DEFAULT_SERVER_HOST" />
+			<data id="port" Qt:type="quint16" expr="DEFAULT_SERVER_PORT" />
+			<data id="id" Qt:type="quint32" expr="0" />
+			<data id="name" Qt:type="QString" expr="" />
+			<data id="inserted" Qt:type="bool" expr="false" />
+			<data id="elapsedTime" Qt:type="quint32" expr="0" />
+		</datamodel>
+		<initial>
+			<transition target="connecting" />
+		</initial>
+
+		<state id="connecting">
+			<onentry>
+				<send event="model.connectToServer(QString, quint16)">
+					<param name="host" expr="_data.host" />
+					<param name="port" expr="_data.port" />
+				</send>
+			</onentry>
+			<transition event="model.connectedToServer" target="connected" />
+			<transition event="model.clientError()" target="client_final" />
+		</state>
+		<state id="connected">
+			<initial>
+				<transition target="idle" />
+			</initial>
+			<state id="idle">
+				<onentry>
+					<send id="timer.run" event="timer.run.timeout" delay="1000ms" />
+				</onentry>
+				<onexit>
+					<cancel sendid="timer.run" />
+				</onexit>
+				<transition event="timer.run.timeout" target="running" />
+				<transition event="model.terminated" target="disconnecting" />
+			</state>
+			<state id="running">
+				<initial>
+					<transition target="sending" />
+				</initial>
+				<state id="sending">
+					<onentry>
+						<send event="model.sendNextRequest()" />
+					</onentry>
+					<transition event="model.commandSent(quint32, QString)" target="waiting">
+						<assign location="_data.id" expr="_event.data[0].toUInt()" />
+						<assign location="_data.name" expr="_event.data[1].toString()" />
+						<send event="view.showCommand(quint32, QString)">
+							<param name="id" expr="_data.id" />
+							<param name="name" expr="_data.name" />
+						</send>
+					</transition>
+				</state>
+				<state id="waiting">
+					<transition event="model.responseReceived(bool, qint64)" target="idle">
+						<assign location="_data.inserted" expr="_event.data[0].toBool()" />
+						<assign location="_data.elapsedTime" expr="_event.data[1].toUInt()" />
+						<send event="view.showResponse(bool, quint32)">
+							<param name="inserted" expr="_data.inserted" />
+							<param name="elapsedTime" expr="_data.elapsedTime" />
+						</send>
+					</transition>
+				</state>
+				<transition event="model.clientError()" target="disconnecting" />
+			</state>
+			<state id="disconnecting">
+				<onentry>
+					<send event="model.disconnectFromServer()" />
+				</onentry>
+				<transition event="model.disconnectedFromServer" target="disconnected" />
+				<transition event="model.clientError()" target="client_final" />
+			</state>
+			<state id="disconnected">
+				<transition target="client_final" />
+			</state>
+			<final id="client_final">
+			</final>
+		</state>
+	</state>
+</scxml>
+
